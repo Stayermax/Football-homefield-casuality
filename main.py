@@ -320,6 +320,7 @@ if __name__ == '__main__':
     # todo 2 : Random forest works slightly better, but from the graph it seems that we still
     # todo: have some issues
     # todo 3 : Use odds values. Uri said that it can be usefull.
+    # todo 4 : CATE model implementation
 
     # PART 1: DATA PREPROCESSING
     # if load = 0, than get_data creates match_df from the scratch.
@@ -331,7 +332,9 @@ if __name__ == '__main__':
     print("FULL PREPROCESSED DATA: ")
     print(match_df)
 
-    # PART 2: ALGORITHM DATA PREPROCESSING
+    # PART 2: DATA VISUALISATION
+
+    # PART 3: ALGORITHM DATA PREPROCESSING
     data, T, Y = get_data(match_df, load)
 
     print("DATA FOR ALGORITHM: ")
@@ -340,8 +343,12 @@ if __name__ == '__main__':
     k = 100
     print(data.loc[[k,int(len(data)/2)+k],:])
 
+    # PART 4: CATE IMPLEMENTATION
+
     # main() # runs hw4 script on hw4 data
     # sql_main() # runs hw4 script on our data
+
+
 
 
 
