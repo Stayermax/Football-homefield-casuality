@@ -332,7 +332,18 @@ if __name__ == '__main__':
     print("FULL PREPROCESSED DATA: ")
     print(match_df)
 
-    # PART 2: DATA VISUALISATION
+    # PART 2: DATA VISUALISATION + SIMPLE STATISTICS
+    # Possible graphs:
+    # 1) Odds prediction accuracies
+    # 2) Teams parameters distribution by countries
+    # 3) Goals distribution by countries (Maybe goal diffs)
+    # 4) 
+    # 5)
+    # 6)
+    # Show that in general home gives advantage
+    # 1) Home vs away averages by country
+    # 2)
+
 
     # PART 3: ALGORITHM DATA PREPROCESSING
     data, T, Y = get_data(match_df, load)
@@ -344,6 +355,11 @@ if __name__ == '__main__':
     print(data.loc[[k,int(len(data)/2)+k],:])
 
     # PART 4: CATE IMPLEMENTATION
+    # I don't know what this should do
+
+    # PART 5: ADVANCED STATISTICS
+    # Maybe some use of CATE results
+    # Check that there are some other thing that influence and correlate with homefield advantage
 
     # main() # runs hw4 script on hw4 data
     # sql_main() # runs hw4 script on our data
