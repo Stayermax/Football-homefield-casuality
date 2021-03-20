@@ -3,8 +3,11 @@ pd.options.display.width = 0
 import numpy as np
 import random
 import sqlite3
-import data_preprocesing as dpp
 import os
+from copy import deepcopy
+
+import data_preprocesing as dpp
+import visualisation as vis
 
 random.seed(179)
 np.random.seed(179)
@@ -189,6 +192,12 @@ def ATTs_for_data(datafile):
     return results, propensity_scores
 
 def get_match_df(datafile, load = False):
+    """
+
+    :param datafile: sqlite databese
+    :param load:  if True loads preprocessed tables from preprocessed_data folder
+    :return: preprocessed match_df with some blanks in odds columns
+    """
     team_df_path = 'preprocessed_data/team_df.csv'
     team_att_df_path = 'preprocessed_data/team_attributes_df.csv'
     match_df_path = 'preprocessed_data/match_df.csv'
@@ -197,6 +206,7 @@ def get_match_df(datafile, load = False):
         team_df = pd.read_csv(team_df_path)
     else:
         con = sqlite3.connect(datafile)
+
         db_tables = pd.read_sql_query("SELECT * from sqlite_sequence", con).set_index('name').to_dict()[
             'seq']  # matches_df
         print(f"Database tables: {db_tables}")
@@ -318,35 +328,45 @@ def graph():
 if __name__ == '__main__':
     # todo 1 : Check poor logistic model accuracy
     # todo 2 : Random forest works slightly better, but from the graph it seems that we still
-    # todo: have some issues
-    # todo 3 : Use odds values. Uri said that it can be usefull.
+    #  have some issues
+    # todo 3 : [DONE] Use odds values. Uri said that it can be usefull.
     # todo 4 : CATE model implementation
 
-    # PART 1: DATA PREPROCESSING
-    # if load = 0, than get_data creates match_df from the scratch.
+    # Program parameters:
+    # if loadFlag is false, than get_data creates match_df from the scratch.
     # O.W. loads it from preprocessed_data folder
-    load = True
+    loadFlag = True
+    # if GraphsFlag is true, program shows graphs in PART 2
+    GraphsFlag = True
+
+    # PART 1: [DONE] DATA PREPROCESSING
     datafile = "data/database.sqlite"
-    # match_df is file to build graphs from
-    match_df = get_match_df(datafile, load)
-    print("FULL PREPROCESSED DATA: ")
-    print(match_df)
+    # match_df_no_odds is file to build graphs from
+    match_df_gappy_odds = get_match_df(datafile, loadFlag) # odds are currently empty sometimes
+    print("PREPROCESSED DATA FOR GRAPHS: ")
+    print(match_df_gappy_odds)
 
     # PART 2: DATA VISUALISATION + SIMPLE STATISTICS
-    # Possible graphs:
-    # 1) Odds prediction accuracies
-    # 2) Teams parameters distribution by countries
-    # 3) Goals distribution by countries (Maybe goal diffs)
-    # 4) 
-    # 5)
-    # 6)
-    # Show that in general home gives advantage
-    # 1) Home vs away averages by country
-    # 2)
+    if(GraphsFlag):
+        match_df_gappy_odds = dpp.add_winner_column(match_df_gappy_odds)
+        # Possible graphs:
+        # 1) Odds prediction accuracies [DONE]
+        vis.odds_accuracies(match_df_gappy_odds)
+        # 2) Teams parameters distribution by countries [TODO]
+        vis.params_by_countries(match_df_gappy_odds)
+        # 3) Losses, Drawns, Wins at home [DONE]
+        vis.win_lose_at_home(match_df_gappy_odds)
+        # 4) Losses, Drawns, Wins by country [DONE]
+        vis.win_lose_by_countries(match_df_gappy_odds)
+        # 5) Goals distribution by countries (Maybe goal diffs) [DONE]
+        vis.goals_distribution_by_countries(match_df_gappy_odds)
+        # 6)
 
 
     # PART 3: ALGORITHM DATA PREPROCESSING
-    data, T, Y = get_data(match_df, load)
+    match_df = deepcopy(match_df_gappy_odds)
+    match_df = dpp.match_table_fill_odds(match_df)  # now all null odds are equal to 1.0
+    data, T, Y = get_data(match_df, loadFlag)
 
     print("DATA FOR ALGORITHM: ")
     print(data)

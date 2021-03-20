@@ -5,11 +5,10 @@ import pandas as pd
 
 def match_data_preprocessing(match_df):
     all_cols = list(match_df.columns)
-    drop_cols = ['country_id', 'date', 'home_team_api_id', 'away_team_api_id',          # match_df properties
-                 'team_api_id_home', 'team_long_name_home', 'team_short_name_home',     # team_att home
-                 'team_fifa_api_id_home','id_home',
-                 'team_api_id_away', 'team_long_name_away','team_short_name_away',      # team_att away
-                 'team_fifa_api_id_away', 'id_away' ]
+    print(all_cols)
+    drop_cols = ['country_id', 'date', 'home_team_api_id', 'away_team_api_id', 'team_api_id_home',
+                 'team_long_name_home', 'team_short_name_home', 'team_fifa_api_id_home', 'id_home', 'team_api_id_away',
+                 'team_long_name_away', 'team_short_name_away', 'team_fifa_api_id_away', 'id_away']
     home_cols = [ 'buildUpPlaySpeed_home', 'buildUpPlaySpeedClass_home',
                   'buildUpPlayDribbling_home', 'buildUpPlayDribblingClass_home', 'buildUpPlayPassing_home',
                   'buildUpPlayPassingClass_home', 'buildUpPlayPositioningClass_home', 'chanceCreationPassing_home',
@@ -173,6 +172,13 @@ def team_att_table_update(team_df : pd.DataFrame, team_att_df: pd.DataFrame):
 
     return team_df, team_att_df
 
+def match_table_fill_odds(match_df):
+    odds_columns = ["B365_home", "B365_away", "B365_draw",
+                    "IW_home", "IW_away", "IW_draw",
+                    "LB_home", "LB_away",  "LB_draw", ]
+    match_df[odds_columns] = match_df[odds_columns].fillna(1)
+    return match_df
+
 def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, country_df : pd.DataFrame, match_df : pd.DataFrame):
     print(f"=== Match df update ===")
 
@@ -218,11 +224,10 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
     match_df = match_df[["country_id", "country_name", "date", "home_team_api_id", "away_team_api_id",  "home_team_goal",  "away_team_goal"] + odds_columns ]
 
     # odds:
-    match_df[odds_columns] = match_df[odds_columns].fillna(1)
+
     match_df = match_df.rename(columns={"B365H": "B365_home", "B365A": "B365_away", "B365D": "B365_draw",
                                         "IWH": "IW_home", "IWA": "IW_away", "IWD": "IW_draw",
                                         "LBH": "LB_home", "LBA": "LB_away", "LBD": "LB_draw", })
-
     # cols = list(match_df.columns)
     # print(f"Current match_df columns: {cols}")
     # print(match_df.head(10))
@@ -276,5 +281,17 @@ def scale(df):
     from sklearn.preprocessing import MaxAbsScaler
     transformer = MaxAbsScaler().fit(df)
     df = transformer.transform(df)
+    return df
+
+def H_D_A(x):
+    if(x[0]>x[1]):
+        return 'H'
+    elif(x[0]<x[1]):
+        return 'A'
+    else:
+        return 'D'
+
+def add_winner_column(df):
+    df['winner'] = df[['team_goal_home','team_goal_away']].apply(H_D_A, axis=1)
     return df
 
