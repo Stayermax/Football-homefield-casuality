@@ -17,7 +17,7 @@ def match_data_preprocessing(match_df):
                   'defencePressure_home', 'defencePressureClass_home', 'defenceAggression_home',
                   'defenceAggressionClass_home', 'defenceTeamWidth_home', 'defenceTeamWidthClass_home',
                   'defenceDefenderLineClass_home', 'team_goal_home',
-                  'B365_home','B365_draw','IW_home','IW_draw','LB_home','LB_draw']
+                  'B365_home','B365_draw','VC_home','VC_draw','BW_home','BW_draw']
     away_cols = ['buildUpPlaySpeed_away','buildUpPlaySpeedClass_away',
                  'buildUpPlayDribbling_away', 'buildUpPlayDribblingClass_away', 'buildUpPlayPassing_away',
                  'buildUpPlayPassingClass_away', 'buildUpPlayPositioningClass_away', 'chanceCreationPassing_away',
@@ -26,7 +26,7 @@ def match_data_preprocessing(match_df):
                  'defencePressure_away', 'defencePressureClass_away', 'defenceAggression_away',
                  'defenceAggressionClass_away', 'defenceTeamWidth_away', 'defenceTeamWidthClass_away',
                  'defenceDefenderLineClass_away', 'team_goal_away',
-                 'B365_away','IW_away','LB_away']
+                 'B365_away','VC_away','BW_away']
 
     match_df = match_df.drop(drop_cols, axis=1)
 
@@ -174,8 +174,9 @@ def team_att_table_update(team_df : pd.DataFrame, team_att_df: pd.DataFrame):
 
 def match_table_fill_odds(match_df):
     odds_columns = ["B365_home", "B365_away", "B365_draw",
-                    "IW_home", "IW_away", "IW_draw",
-                    "LB_home", "LB_away",  "LB_draw", ]
+                    "VC_home", "VC_away", "VC_draw",
+                    "BW_home", "BW_away",  "BW_draw", ]
+
     match_df[odds_columns] = match_df[odds_columns].fillna(1)
     return match_df
 
@@ -189,9 +190,12 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
     cols = list(match_df.columns)
     print(f"Default match_df columns: {cols}")
     drop_columns = ['id','league_id','season', 'stage', 'match_api_id']
-    drop_odds_columns = ['BWH', 'BWD', 'BWA', 'PSH', 'PSD', 'PSA', 'WHH', 'WHD', 'WHA', 'SJH', 'SJD', 'SJA', 'VCH',
-                         'VCD', 'VCA', 'GBH', 'GBD', 'GBA', 'BSH', 'BSD', 'BSA']
-    odds_columns = ['B365H', 'B365D', 'B365A', 'IWH', 'IWD', 'IWA','LBH', 'LBD', 'LBA',]
+    drop_odds_columns = ['IWH', 'IWD', 'IWA', 'LBH', 'LBD', 'LBA', 'PSH', 'PSD', 'PSA', 'WHH',
+                         'WHD', 'WHA', 'GBH', 'GBD', 'GBA', 'BSH', 'BSD', 'BSA', 'SJH', 'SJD', 'SJA']
+    odds_columns = ['B365H', 'B365D', 'B365A', 'VCH', 'VCD', 'VCA','BWH', 'BWD', 'BWA']
+    # B365D
+    # BWD
+    # VCD
     zero_columns = ['goal', 'shoton', 'shotoff', 'foulcommit', 'card', 'cross', 'corner', 'possession']
     player_columns = ['home_player_X1', 'home_player_X2', 'home_player_X3', 'home_player_X4', 'home_player_X5',
                       'home_player_X6', 'home_player_X7', 'home_player_X8', 'home_player_X9', 'home_player_X10',
@@ -207,6 +211,9 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
                       'away_player_1', 'away_player_2', 'away_player_3', 'away_player_4', 'away_player_5',
                       'away_player_6', 'away_player_7', 'away_player_8', 'away_player_9', 'away_player_10',
                       'away_player_11']
+
+    # draw_columns = [el for el in drop_odds_columns + odds_columns if 'D' in el]
+    # print(f"EMPTY VALUES: {match_df[draw_columns].isna().sum()}")
 
     # unnecessary
     match_df = match_df.drop(drop_odds_columns, axis=1)
@@ -226,8 +233,11 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
     # odds:
 
     match_df = match_df.rename(columns={"B365H": "B365_home", "B365A": "B365_away", "B365D": "B365_draw",
-                                        "IWH": "IW_home", "IWA": "IW_away", "IWD": "IW_draw",
-                                        "LBH": "LB_home", "LBA": "LB_away", "LBD": "LB_draw", })
+                                        'VCH': 'VC_home', 'VCD': 'VC_draw', 'VCA': 'VC_away',
+                                        'BWH': 'BW_home', 'BWD': 'BW_draw', 'BWA': 'BW_away',
+                                        })
+
+
     # cols = list(match_df.columns)
     # print(f"Current match_df columns: {cols}")
     # print(match_df.head(10))
@@ -247,6 +257,13 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
                         direction='forward'))
 
     home_and_away_df = home_and_away_df.rename(columns={"home_team_goal": "team_goal_home", "away_team_goal": "team_goal_away", "name":"country_name"})
+
+    Lost_teams = [4064, 188163, 9765, 10213, 6601, 7947, 177361, 7992, 4049, 7896, 6367]
+    print(team_df[team_df['team_api_id'].isin(Lost_teams)]['team_long_name'].unique())
+    lost_df = home_and_away_df[(home_and_away_df['home_team_api_id'].isin(Lost_teams)) | (home_and_away_df['away_team_api_id'].isin(Lost_teams)) ]
+    print(f'LOST DF: {lost_df}')
+    home_and_away_df = home_and_away_df.drop(lost_df.index, axis=0)
+
 
     return home_and_away_df
 
@@ -294,4 +311,9 @@ def H_D_A(x):
 def add_winner_column(df):
     df['winner'] = df[['team_goal_home','team_goal_away']].apply(H_D_A, axis=1)
     return df
+
+
+
+
+
 

@@ -335,7 +335,7 @@ if __name__ == '__main__':
     # Program parameters:
     # if loadFlag is false, than get_data creates match_df from the scratch.
     # O.W. loads it from preprocessed_data folder
-    loadFlag = True
+    loadFlag = False
     # if GraphsFlag is true, program shows graphs in PART 2
     GraphsFlag = True
 
@@ -345,7 +345,7 @@ if __name__ == '__main__':
     match_df_gappy_odds = get_match_df(datafile, loadFlag) # odds are currently empty sometimes
     print("PREPROCESSED DATA FOR GRAPHS: ")
     print(match_df_gappy_odds)
-
+    match_df = deepcopy(match_df_gappy_odds)
     # PART 2: DATA VISUALISATION + SIMPLE STATISTICS
     if(GraphsFlag):
         match_df_gappy_odds = dpp.add_winner_column(match_df_gappy_odds)
@@ -364,7 +364,6 @@ if __name__ == '__main__':
 
 
     # PART 3: ALGORITHM DATA PREPROCESSING
-    match_df = deepcopy(match_df_gappy_odds)
     match_df = dpp.match_table_fill_odds(match_df)  # now all null odds are equal to 1.0
     data, T, Y = get_data(match_df, loadFlag)
 
@@ -377,14 +376,26 @@ if __name__ == '__main__':
     # PART 4: CATE IMPLEMENTATION
     # I don't know what this should do
 
-    # PART 5: ADVANCED STATISTICS
-    # Maybe some use of CATE results
-    # Check that there are some other thing that influence and correlate with homefield advantage
-
-    # main() # runs hw4 script on hw4 data
-    # sql_main() # runs hw4 script on our data
-
-
-
-
-
+    # # TODO: delete from here
+    #
+    # data_T = data
+    # data_T['T'] = T
+    # from sklearn import linear_model as lm
+    # from sklearn.metrics import r2_score as r2
+    # model = lm.LinearRegression()
+    # model.fit(data_T, Y)
+    # Y_gag = model.predict(data_T)
+    # Y_gag = np.round(Y_gag)
+    # print(f"Linear regression score: {r2(Y,Y_gag)}")
+    # print(model.intercept_)
+    # # todo: add linear treatment effect
+    # # todo: causal forest
+    #
+    # # TODO: delete to here
+    #
+    # # PART 5: ADVANCED STATISTICS
+    # # Maybe some use of CATE results
+    # # Check that there are some other thing that influence and correlate with homefield advantage
+    #
+    # # main() # runs hw4 script on hw4 data
+    # # sql_main() # runs hw4 script on our data

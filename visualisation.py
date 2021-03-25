@@ -16,20 +16,24 @@ def check_odds(x):
         return 0
 
 def odds_accuracies(df: pd.DataFrame):
-    odds_columns = [["B365_home", "B365_away", "B365_draw"],
-                    ["IW_home", "IW_away", "IW_draw"],
-                    ["LB_home", "LB_away", "LB_draw"] ]
+    # odds_columns = [['B365_home', 'B365_draw', 'B365_away'], ['IW_home', 'IW_draw', 'IW_away'], ['LB_home', 'LB_draw', 'LB_away'], ['BW_home', 'BW_draw', 'BW_away'], ['PS_home', 'PS_draw', 'PS_away'], ['WH_home', 'WH_draw', 'WH_away'], ['SJ_home', 'SJ_draw', 'SJ_away'], ['VC_home', 'VC_draw', 'VC_away'], ['GB_home', 'GB_draw', 'GB_away'], ['BS_home', 'BS_draw', 'BS_away']]
+    odds_columns = [   ['B365_home', 'B365_draw', 'B365_away'],
+    ['VC_home', 'VC_draw', 'VC_away'],
+    ['BW_home', 'BW_draw', 'BW_away'],]
+
+
     res = {}
     for col_gr in odds_columns:
         betting_comp = col_gr[0].split('_')[0]
-        res[betting_comp] = df[col_gr+['winner']].dropna(how='any',axis=0) .apply(check_odds, axis=1).mean()*100
+        res[betting_comp] = df[col_gr+['winner']].dropna(how='any',axis=0).apply(check_odds, axis=1).mean()*100
     print(f"Odds accuracies: {res}")
-    keys = ['B365','LB','IW']
-    vals = [float(res[k]) for k in keys]
-    comp_names = ['Bet365','Ladbrokes','Interwetten']
+    vals = [float(res[k]) for k in res.keys()]
+    vals.sort(reverse=True)
+    comp_names = [k for k in res.keys()]
+    comp_names.sort(key = lambda x: res[x], reverse=True)
     sns.barplot(x=comp_names, y=vals).set_title('Betting companies accuracies')
-    plt.ylim(0, 50)
-    plt.yticks(range(0,50,5))
+    plt.ylim(50, 55)
+    plt.yticks(range(50,55,1))
     plt.ylabel('Winner prediction accuracy in %')
     plt.show()
     plt.close()
@@ -97,7 +101,7 @@ def goals_distribution_by_countries(df : pd.DataFrame):
     plt.subplots_adjust(bottom=0.2, left=0.135)
     plt.ylabel('Goals number expectation')
     plt.title('Home goals Advantage')
-    plt.legend(['Home Wins', 'Draws', 'Away Wins'], loc=2)
+    plt.legend(['Home goals', 'Away goals'], loc=2)
     plt.show()
     # plt.close()
 # 6)
