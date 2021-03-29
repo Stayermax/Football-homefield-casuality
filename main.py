@@ -233,12 +233,12 @@ def get_match_df(datafile, load = False):
 
     return match_df
 
-def get_data(match_df, condition, loadFlag = False, loadHelperTables = False):
+def get_data(match_df, condition, loadFlag = False, loadHelperTables = False, conditionGraphFlag=False):
     data_path = f"preprocessed_data/Conditions_data/{condition}_algorithm_data.csv"
     if (os.path.exists(data_path) and loadFlag):
         data = pd.read_csv(data_path, index_col=0)
     else:
-        data = dpp.match_data_preprocessing(match_df, condition, loadHelperTables)
+        data = dpp.match_data_preprocessing(match_df, condition, loadHelperTables, conditionGraphFlag)
         data.to_csv(data_path)
 
     print(f'Get data function results with {condition}:\n {data}')
@@ -250,12 +250,13 @@ def get_data(match_df, condition, loadFlag = False, loadHelperTables = False):
     return data, T, Y
 
 def ATTs_for_sql_data(datafile):
-    loadFlag = False
+    loadFlag = True
     loadHelperTables = True
+    conditionGraphFlag = False
     match_df = get_match_df(datafile, loadFlag)
 
     results = {}
-    data, T, Y = get_data(match_df, "No_conditions", loadFlag, loadHelperTables)
+    data, T, Y = get_data(match_df, "No_conditions", loadFlag, loadHelperTables, conditionGraphFlag)
 
     print("DATA FOR ALGORITHM: ")
     print(data)
@@ -347,6 +348,8 @@ if __name__ == '__main__':
     #   Rage data calculated fron the scratch
     # O.W. loads Tournament positions and Rage data from the preprocessed_data folder
     loadHelperTables = True
+    # if conditionGraphFlag is true, then we build graphs for data with conditions
+    conditionGraphFlag = True
 
     # PART 1: [DONE] DATA PREPROCESSING
     datafile = "data/database.sqlite"
@@ -373,19 +376,24 @@ if __name__ == '__main__':
 
 
     # PART 3.0 : CONDITIONS DATA PREPROCESSING
+    # 0) Stage condition (Stage < 10)
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_LowStage, T_LowStage, Y_LowStage = get_data(match_df, "LowStage", loadFlag, loadHelperTables, conditionGraphFlag)
+    # 0.5) Stage condition (Stage > 20)
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_HighStage, T_HighStage, Y_HighStage = get_data(match_df, "HighStage", loadFlag, loadHelperTables, conditionGraphFlag)
     # 1) Weather condition
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_weather, T_weather, Y_weather = get_data(match_df, "Weather", loadFlag)
+    data_weather, T_weather, Y_weather = get_data(match_df, "Weather", loadFlag, loadHelperTables, conditionGraphFlag)
     # 2) Similarity condition
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_similarity, T_similarity, Y_similarity = get_data(match_df,"Similarity", loadFlag)
+    data_similarity, T_similarity, Y_similarity = get_data(match_df,"Similarity", loadFlag, loadHelperTables, conditionGraphFlag)
     # 3) Rivalry condition
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadHelperTables)
+    data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadHelperTables, conditionGraphFlag)
     # 4) Rage condition
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag, loadHelperTables)
-    #
+    data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag, loadHelperTables, conditionGraphFlag)
     #
     #
     # # PART 3.5: ALGORITHM DATA PREPROCESSING

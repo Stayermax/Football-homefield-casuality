@@ -54,7 +54,7 @@ def win_lose_at_home(df : pd.DataFrame ):
     plt.close()
 
 # 4) Losses, Draws, Wins by country [DONE]
-def win_lose_by_countries(df: pd.DataFrame):
+def win_lose_by_countries(df: pd.DataFrame, condition =''):
     y1,y2,y3 = [],[],[]
     res = {}
     countries = list(df['country_name'].unique())
@@ -75,7 +75,10 @@ def win_lose_by_countries(df: pd.DataFrame):
     plt.xticks(np.linspace(1, 30, len(countries)) - 0.5 * np.ones(len(countries)), res, size='small', rotation=53)
     plt.subplots_adjust(bottom=0.2, left=0.135)
     plt.ylabel('Matches Number')
-    plt.title('Home Wins Advantage')
+    if(condition == ''):
+        plt.title('Home Wins Advantage')
+    else:
+        plt.title(f'Home Wins Advantage with {condition}')
     plt.legend(['Home Wins', 'Draws', 'Away Wins'], loc=2)
     plt.show()
     plt.close()

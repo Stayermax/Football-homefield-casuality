@@ -93,7 +93,7 @@ def Rage_calculation(match_df : pd.DataFrame, loadFlag):
         res_df.to_csv(data_path)
     return res_df
 
-def match_data_preprocessing(match_df, condition, loadFlag):
+def match_data_preprocessing(match_df, condition, loadFlag, conditionGraphFlag):
     all_cols = list(match_df.columns)
     print(all_cols)
     drop_cols = ['league_id','season', 'stage',
@@ -129,6 +129,10 @@ def match_data_preprocessing(match_df, condition, loadFlag):
 
     if(condition == "No_conditions"):
         pass
+    elif(condition == 'LowStage'):
+        match_df = match_df[match_df['stage'] <10]
+    elif(condition == 'HighStage'):
+        match_df = match_df[match_df['stage'] > 20]
     elif(condition == "Weather"):
         # match_df['date']
         match_df['Weather'] = match_df['date'].apply(Weather_condition)
@@ -136,7 +140,8 @@ def match_data_preprocessing(match_df, condition, loadFlag):
         match_df = match_df.drop('Weather', axis=1)
     elif(condition == "Similarity"):
         match_df['Similarity'] = match_df[home_num_cols + away_num_cols].apply(Similarity_condition, axis=1)
-        threshold = match_df['Similarity'].mean()
+        # threshold = match_df['Similarity'].mean()
+        threshold = 20
         print(f"Similarity df: {match_df}")
         match_df = match_df[match_df['Similarity'] <= threshold]
         match_df = match_df.drop('Similarity',axis=1)
@@ -158,6 +163,12 @@ def match_data_preprocessing(match_df, condition, loadFlag):
         # print(f"Rage df: {match_df}")
         match_df = match_df[match_df['Rage'] == 1]
         match_df = match_df.drop('Rage', axis=1)
+
+    if(conditionGraphFlag):
+        import visualisation as vis
+        match_df_winner = deepcopy(match_df)
+        match_df_winner = add_winner_column(match_df_winner)
+        vis.win_lose_by_countries(match_df_winner, condition)
 
     match_df = match_df.drop(drop_cols, axis=1)
 
