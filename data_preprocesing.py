@@ -24,11 +24,11 @@ def Similarity_condition(teams_params):
     return sqrt(R_2)
 
 def Tournament_position(match_df : pd.DataFrame, loadFlag):
-    data_path = f"preprocessed_data/tournament_positions.csv"
+    data_path = f"preprocessed_data/Conditions_data/tournament_positions.csv"
     if (os.path.exists(data_path) and loadFlag):
         res_df = pd.read_csv(data_path, index_col=0)
     else:
-        game_cols = ['league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
+        game_cols = ['date', 'league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
         df = match_df[game_cols]
 
         pos_cols = ['pos_home', 'pos_away']
@@ -38,7 +38,7 @@ def Tournament_position(match_df : pd.DataFrame, loadFlag):
         for LS_name, LS_group in LS_grps:
             team_scores = {id : 0 for id in LS_group['team_api_id_home'].unique()}
             Stage_grps = LS_group.groupby('stage')
-            print(f'GROUP: {LS_name} with {len(team_scores.keys())} teams and {len(Stage_grps)} stages')
+            # print(f'GROUP: {LS_name} with {len(team_scores.keys())} teams and {len(Stage_grps)} stages')
             for stage_name, stage_group in Stage_grps:
                 for index, row in stage_group.iterrows():
                     if(row['team_goal_home'] > row['team_goal_away']):
@@ -48,7 +48,8 @@ def Tournament_position(match_df : pd.DataFrame, loadFlag):
                     else:
                         team_scores[row['team_api_id_home']] += 1
                         team_scores[row['team_api_id_away']] += 1
-                sorted_teams_ids = sorted(team_scores.items(), key=lambda item: item[1])
+                sorted_teams_ids = sorted(team_scores.items(), key=lambda item: item[1], reverse=True)
+                # print(sorted_teams_ids)
                 sorted_teams_ids = {el[0] : ind for ind, el in enumerate(sorted_teams_ids)}
                 for index, row in stage_group.iterrows():
                     home_position = sorted_teams_ids[row['team_api_id_home']]
@@ -60,8 +61,43 @@ def Tournament_position(match_df : pd.DataFrame, loadFlag):
 
 def Rivalry_condition(game_data):
     data = game_data.to_dict()
-    # print(data)
+    if(abs(data['pos_home']-data['pos_away'])<3):
+        return 1
     return 0
+
+def Rage_calculation(match_df : pd.DataFrame, loadFlag):
+    data_path = f"preprocessed_data/Conditions_data/rage_data.csv"
+    if (os.path.exists(data_path) and loadFlag):
+        res_df = pd.read_csv(data_path, index_col=0)
+    else:
+        game_cols = ['date', 'league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
+        df = match_df[game_cols]
+
+        res_df = pd.DataFrame(columns = ['Rage'])
+        LS_grps = df.groupby(['league_id','season'])
+        for LS_name, LS_group in LS_grps:
+            team_played_at_home = {id : [] for id in LS_group['team_api_id_home'].unique()}
+            Stage_grps = LS_group.groupby('stage')
+            # print(f'GROUP: {LS_name} with {len(team_scores.keys())} teams and {len(Stage_grps)} stages')
+            for stage_name, stage_group in Stage_grps:
+                for index, row in stage_group.iterrows():
+                    if(row['team_goal_home'] > row['team_goal_away']):
+                        team_scores[row['team_api_id_home']] += 3
+                    elif(row['team_goal_home'] < row['team_goal_away']):
+                        team_scores[row['team_api_id_away']] += 3
+                    else:
+                        team_scores[row['team_api_id_home']] += 1
+                        team_scores[row['team_api_id_away']] += 1
+                sorted_teams_ids = sorted(team_scores.items(), key=lambda item: item[1], reverse=True)
+                # print(sorted_teams_ids)
+                sorted_teams_ids = {el[0] : ind for ind, el in enumerate(sorted_teams_ids)}
+                for index, row in stage_group.iterrows():
+                    home_position = sorted_teams_ids[row['team_api_id_home']]
+                    away_position = sorted_teams_ids[row['team_api_id_away']]
+                    res_df.loc[index] = [home_position, away_position]
+        res_df.to_csv(data_path)
+        print(res_df)
+    return res_df
 
 def Rage_condition(date):
     month = date.month
@@ -118,16 +154,18 @@ def match_data_preprocessing(match_df, condition, loadFlag):
         match_df = match_df.drop('Similarity',axis=1)
     elif(condition == "Rivalry"):
         # todo: check stages number
-        # todo: check 'id_away' column - what is it? 
+        # todo: check 'id_away' column - what is it?
         match_df.sort_values(by='date')
         tournament_df = Tournament_position(match_df, loadFlag)
         match_df = pd.merge(match_df, tournament_df, left_index=True, right_index=True)
-        print(match_df)
         match_df['Rivalry'] = match_df[['pos_home','pos_away']].apply(Rivalry_condition, axis=1)
+        print(f"Rivalry df: {match_df}")
         match_df = match_df[match_df['Rivalry'] == 1]
         match_df = match_df.drop(['Rivalry','pos_home','pos_away'], axis=1)
     elif(condition == "Rage"):
         match_df['Rage'] = match_df['date'].apply(Rage_condition)
+        rage_df = Rage_calculation(match_df, loadFlag)
+        print(f"Rage df: {match_df}")
         match_df = match_df[match_df['Rage'] == 1]
         match_df = match_df.drop('Rage', axis=1)
 

@@ -234,12 +234,14 @@ def get_match_df(datafile, load = False):
     return match_df
 
 def get_data(match_df, condition, loadFlag = False, loadTournamentFlag = False):
-    data_path = f"preprocessed_data/{condition}_algorithm_data.csv"
+    data_path = f"preprocessed_data/Conditions_data/{condition}_algorithm_data.csv"
     if (os.path.exists(data_path) and loadFlag):
         data = pd.read_csv(data_path, index_col=0)
     else:
         data = dpp.match_data_preprocessing(match_df, condition, loadTournamentFlag)
         data.to_csv(data_path)
+
+    print(f'Get data function results with {condition}:\n {data}')
 
     T = data['T']
     Y = data['Y']
@@ -379,17 +381,17 @@ if __name__ == '__main__':
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
     data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadTournamentFlag)
     # 4) Rage condition
-    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag)
-
-
-
-    # PART 3.5: ALGORITHM DATA PREPROCESSING
-
-    data, T, Y = get_data(match_df, "No_conditions", loadFlag)
-
-    print("DATA FOR ALGORITHM: ")
-    print(data)
+    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    # data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag)
+    #
+    #
+    #
+    # # PART 3.5: ALGORITHM DATA PREPROCESSING
+    #
+    # data, T, Y = get_data(match_df, "No_conditions", loadFlag)
+    #
+    # print("DATA FOR ALGORITHM: ")
+    # print(data)
     # Check that data of match k dublicated right
 
     # PART 4: CATE IMPLEMENTATION
