@@ -56,7 +56,6 @@ def Tournament_position(match_df : pd.DataFrame, loadFlag):
                     away_position = sorted_teams_ids[row['team_api_id_away']]
                     res_df.loc[index] = [home_position, away_position]
         res_df.to_csv(data_path)
-        print(res_df)
     return res_df
 
 def Rivalry_condition(game_data):
@@ -76,34 +75,23 @@ def Rage_calculation(match_df : pd.DataFrame, loadFlag):
         res_df = pd.DataFrame(columns = ['Rage'])
         LS_grps = df.groupby(['league_id','season'])
         for LS_name, LS_group in LS_grps:
-            team_played_at_home = {id : [] for id in LS_group['team_api_id_home'].unique()}
+            # lost_at_away_field_teams dict: team_id : list of team_ids
+            # For each team x list of teams y that won at their home field in match with x
+            lost_at_away_field_teams= {id : [] for id in LS_group['team_api_id_home'].unique()}
             Stage_grps = LS_group.groupby('stage')
             # print(f'GROUP: {LS_name} with {len(team_scores.keys())} teams and {len(Stage_grps)} stages')
             for stage_name, stage_group in Stage_grps:
                 for index, row in stage_group.iterrows():
-                    if(row['team_goal_home'] > row['team_goal_away']):
-                        team_scores[row['team_api_id_home']] += 3
-                    elif(row['team_goal_home'] < row['team_goal_away']):
-                        team_scores[row['team_api_id_away']] += 3
+                    if(row['team_api_id_away'] in lost_at_away_field_teams[row['team_api_id_home']]):
+                        res_df.loc[index] = [1]
                     else:
-                        team_scores[row['team_api_id_home']] += 1
-                        team_scores[row['team_api_id_away']] += 1
-                sorted_teams_ids = sorted(team_scores.items(), key=lambda item: item[1], reverse=True)
-                # print(sorted_teams_ids)
-                sorted_teams_ids = {el[0] : ind for ind, el in enumerate(sorted_teams_ids)}
-                for index, row in stage_group.iterrows():
-                    home_position = sorted_teams_ids[row['team_api_id_home']]
-                    away_position = sorted_teams_ids[row['team_api_id_away']]
-                    res_df.loc[index] = [home_position, away_position]
+                        res_df.loc[index] = [0]
+                    if(row['team_goal_home'] >= row['team_goal_away']):
+                        lost_at_away_field_teams[row['team_api_id_away']].append(row['team_api_id_home'])
+                    else:
+                        pass
         res_df.to_csv(data_path)
-        print(res_df)
     return res_df
-
-def Rage_condition(date):
-    month = date.month
-    if(month>11 or month<3):
-        return 1
-    return 0
 
 def match_data_preprocessing(match_df, condition, loadFlag):
     all_cols = list(match_df.columns)
@@ -149,9 +137,10 @@ def match_data_preprocessing(match_df, condition, loadFlag):
     elif(condition == "Similarity"):
         match_df['Similarity'] = match_df[home_num_cols + away_num_cols].apply(Similarity_condition, axis=1)
         threshold = match_df['Similarity'].mean()
-        # threshold = 20
+        print(f"Similarity df: {match_df}")
         match_df = match_df[match_df['Similarity'] <= threshold]
         match_df = match_df.drop('Similarity',axis=1)
+        print(f"Reduced similarity df: {match_df}")
     elif(condition == "Rivalry"):
         # todo: check stages number
         # todo: check 'id_away' column - what is it?
@@ -159,17 +148,16 @@ def match_data_preprocessing(match_df, condition, loadFlag):
         tournament_df = Tournament_position(match_df, loadFlag)
         match_df = pd.merge(match_df, tournament_df, left_index=True, right_index=True)
         match_df['Rivalry'] = match_df[['pos_home','pos_away']].apply(Rivalry_condition, axis=1)
-        print(f"Rivalry df: {match_df}")
+        # print(f"Rivalry df: {match_df}")
         match_df = match_df[match_df['Rivalry'] == 1]
         match_df = match_df.drop(['Rivalry','pos_home','pos_away'], axis=1)
     elif(condition == "Rage"):
-        match_df['Rage'] = match_df['date'].apply(Rage_condition)
+        match_df.sort_values(by='date')
         rage_df = Rage_calculation(match_df, loadFlag)
-        print(f"Rage df: {match_df}")
+        match_df = pd.merge(match_df, rage_df, left_index=True, right_index=True)
+        # print(f"Rage df: {match_df}")
         match_df = match_df[match_df['Rage'] == 1]
         match_df = match_df.drop('Rage', axis=1)
-
-
 
     match_df = match_df.drop(drop_cols, axis=1)
 

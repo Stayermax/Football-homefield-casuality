@@ -233,12 +233,12 @@ def get_match_df(datafile, load = False):
 
     return match_df
 
-def get_data(match_df, condition, loadFlag = False, loadTournamentFlag = False):
+def get_data(match_df, condition, loadFlag = False, loadHelperTables = False):
     data_path = f"preprocessed_data/Conditions_data/{condition}_algorithm_data.csv"
     if (os.path.exists(data_path) and loadFlag):
         data = pd.read_csv(data_path, index_col=0)
     else:
-        data = dpp.match_data_preprocessing(match_df, condition, loadTournamentFlag)
+        data = dpp.match_data_preprocessing(match_df, condition, loadHelperTables)
         data.to_csv(data_path)
 
     print(f'Get data function results with {condition}:\n {data}')
@@ -251,11 +251,11 @@ def get_data(match_df, condition, loadFlag = False, loadTournamentFlag = False):
 
 def ATTs_for_sql_data(datafile):
     loadFlag = False
-    loadTournamentFlag = True
+    loadHelperTables = True
     match_df = get_match_df(datafile, loadFlag)
 
     results = {}
-    data, T, Y = get_data(match_df, "No_conditions", loadFlag, loadTournamentFlag)
+    data, T, Y = get_data(match_df, "No_conditions", loadFlag, loadHelperTables)
 
     print("DATA FOR ALGORITHM: ")
     print(data)
@@ -338,13 +338,15 @@ if __name__ == '__main__':
 
     # Program parameters:
     # if loadFlag is false, then get_data creates match_df from the scratch.
-    # O.W. loads it from preprocessed_data folder
+    # O.W. loads it from the preprocessed_data folder
     loadFlag = False
     # if GraphsFlag is true, program shows graphs in PART 2
     GraphsFlag = False
-    # if loadFlag is false, then Tournament places for each stage calculates once again from the scratch.
-    # O.W. loads it from preprocessed_data folder
-    loadTournamentFlag = True
+    # if loadHelperTables is false, then:
+    #   Tournament positions for each stage calculates once again from the scratch.
+    #   Rage data calculated fron the scratch
+    # O.W. loads Tournament positions and Rage data from the preprocessed_data folder
+    loadHelperTables = True
 
     # PART 1: [DONE] DATA PREPROCESSING
     datafile = "data/database.sqlite"
@@ -371,18 +373,18 @@ if __name__ == '__main__':
 
 
     # PART 3.0 : CONDITIONS DATA PREPROCESSING
-    # # 1) Weather condition
-    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    # data_weather, T_weather, Y_weather = get_data(match_df, "Weather", loadFlag)
-    # # 2) Similarity condition
-    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    # data_similarity, T_similarity, Y_similarity = get_data(match_df,"Similarity", loadFlag)
+    # 1) Weather condition
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_weather, T_weather, Y_weather = get_data(match_df, "Weather", loadFlag)
+    # 2) Similarity condition
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_similarity, T_similarity, Y_similarity = get_data(match_df,"Similarity", loadFlag)
     # 3) Rivalry condition
     match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadTournamentFlag)
+    data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadHelperTables)
     # 4) Rage condition
-    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
-    # data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag)
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag, loadHelperTables)
     #
     #
     #
