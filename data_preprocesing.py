@@ -1,32 +1,137 @@
 import pandas as pd
+from math import sqrt
+import os
+from copy import deepcopy
 ###########################################
 #### S Q L   P r e p r o c e s s i n g ####
 ###########################################
 
-def match_data_preprocessing(match_df):
+def Weather_condition(date):
+    month = date.month
+    if(month>11 or month<3):
+        return 1
+    return 0
+
+def Similarity_condition(teams_params):
+    data = teams_params.to_dict()
+    params = []
+    R_2 = 0
+    for key in data.keys():
+        if('away' in key):
+            params.append(key.split('_')[0])
+    for param in params:
+        R_2 += (teams_params[param + '_away'] - teams_params[param + '_home'])**2
+    return sqrt(R_2)
+
+def Tournament_position(match_df : pd.DataFrame, loadFlag):
+    data_path = f"preprocessed_data/tournament_positions.csv"
+    if (os.path.exists(data_path) and loadFlag):
+        res_df = pd.read_csv(data_path, index_col=0)
+    else:
+        game_cols = ['league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
+        df = match_df[game_cols]
+
+        pos_cols = ['pos_home', 'pos_away']
+        res_df = pd.DataFrame(columns = pos_cols)
+
+        LS_grps = df.groupby(['league_id','season'])
+        for LS_name, LS_group in LS_grps:
+            team_scores = {id : 0 for id in LS_group['team_api_id_home'].unique()}
+            Stage_grps = LS_group.groupby('stage')
+            print(f'GROUP: {LS_name} with {len(team_scores.keys())} teams and {len(Stage_grps)} stages')
+            for stage_name, stage_group in Stage_grps:
+                for index, row in stage_group.iterrows():
+                    if(row['team_goal_home'] > row['team_goal_away']):
+                        team_scores[row['team_api_id_home']] += 3
+                    elif(row['team_goal_home'] < row['team_goal_away']):
+                        team_scores[row['team_api_id_away']] += 3
+                    else:
+                        team_scores[row['team_api_id_home']] += 1
+                        team_scores[row['team_api_id_away']] += 1
+                sorted_teams_ids = sorted(team_scores.items(), key=lambda item: item[1])
+                sorted_teams_ids = {el[0] : ind for ind, el in enumerate(sorted_teams_ids)}
+                for index, row in stage_group.iterrows():
+                    home_position = sorted_teams_ids[row['team_api_id_home']]
+                    away_position = sorted_teams_ids[row['team_api_id_away']]
+                    res_df.loc[index] = [home_position, away_position]
+        res_df.to_csv(data_path)
+        print(res_df)
+    return res_df
+
+def Rivalry_condition(game_data):
+    data = game_data.to_dict()
+    # print(data)
+    return 0
+
+def Rage_condition(date):
+    month = date.month
+    if(month>11 or month<3):
+        return 1
+    return 0
+
+def match_data_preprocessing(match_df, condition, loadFlag):
     all_cols = list(match_df.columns)
     print(all_cols)
-    drop_cols = ['country_id', 'date', 'home_team_api_id', 'away_team_api_id', 'team_api_id_home',
+    drop_cols = ['league_id','season', 'stage',
+                 'country_id', 'date', 'home_team_api_id', 'away_team_api_id', 'team_api_id_home',
                  'team_long_name_home', 'team_short_name_home', 'team_fifa_api_id_home', 'id_home', 'team_api_id_away',
                  'team_long_name_away', 'team_short_name_away', 'team_fifa_api_id_away', 'id_away']
-    home_cols = [ 'buildUpPlaySpeed_home', 'buildUpPlaySpeedClass_home',
-                  'buildUpPlayDribbling_home', 'buildUpPlayDribblingClass_home', 'buildUpPlayPassing_home',
-                  'buildUpPlayPassingClass_home', 'buildUpPlayPositioningClass_home', 'chanceCreationPassing_home',
-                  'chanceCreationPassingClass_home', 'chanceCreationCrossing_home', 'chanceCreationCrossingClass_home',
-                  'chanceCreationShooting_home', 'chanceCreationShootingClass_home', 'chanceCreationPositioningClass_home',
-                  'defencePressure_home', 'defencePressureClass_home', 'defenceAggression_home',
-                  'defenceAggressionClass_home', 'defenceTeamWidth_home', 'defenceTeamWidthClass_home',
+    home_cols = [ 'buildUpPlaySpeedClass_home',
+                  'buildUpPlayDribblingClass_home',
+                  'buildUpPlayPassingClass_home', 'buildUpPlayPositioningClass_home',
+                  'chanceCreationPassingClass_home', 'chanceCreationCrossingClass_home',
+                  'chanceCreationShootingClass_home', 'chanceCreationPositioningClass_home',
+                  'defencePressureClass_home',
+                  'defenceAggressionClass_home', 'defenceTeamWidthClass_home',
                   'defenceDefenderLineClass_home', 'team_goal_home',
                   'B365_home','B365_draw','VC_home','VC_draw','BW_home','BW_draw']
-    away_cols = ['buildUpPlaySpeed_away','buildUpPlaySpeedClass_away',
-                 'buildUpPlayDribbling_away', 'buildUpPlayDribblingClass_away', 'buildUpPlayPassing_away',
-                 'buildUpPlayPassingClass_away', 'buildUpPlayPositioningClass_away', 'chanceCreationPassing_away',
-                 'chanceCreationPassingClass_away', 'chanceCreationCrossing_away', 'chanceCreationCrossingClass_away',
-                 'chanceCreationShooting_away', 'chanceCreationShootingClass_away', 'chanceCreationPositioningClass_away',
-                 'defencePressure_away', 'defencePressureClass_away', 'defenceAggression_away',
-                 'defenceAggressionClass_away', 'defenceTeamWidth_away', 'defenceTeamWidthClass_away',
+    home_num_cols = ['buildUpPlaySpeed_home', 'buildUpPlayDribbling_home', 'buildUpPlayPassing_home',
+                     'chanceCreationPassing_home', 'chanceCreationCrossing_home', 'chanceCreationShooting_home',
+                     'defencePressure_home', 'defenceAggression_home', 'defenceTeamWidth_home']
+
+    away_cols = ['buildUpPlaySpeedClass_away',
+                 'buildUpPlayDribblingClass_away',
+                 'buildUpPlayPassingClass_away', 'buildUpPlayPositioningClass_away',
+                 'chanceCreationPassingClass_away', 'chanceCreationCrossingClass_away',
+                 'chanceCreationShootingClass_away', 'chanceCreationPositioningClass_away',
+                 'defencePressureClass_away',
+                 'defenceAggressionClass_away', 'defenceTeamWidthClass_away',
                  'defenceDefenderLineClass_away', 'team_goal_away',
                  'B365_away','VC_away','BW_away']
+
+    away_num_cols = ['buildUpPlaySpeed_away', 'buildUpPlayDribbling_away', 'buildUpPlayPassing_away',
+                     'chanceCreationPassing_away', 'chanceCreationCrossing_away', 'chanceCreationShooting_away',
+                     'defencePressure_away', 'defenceAggression_away', 'defenceTeamWidth_away']
+
+    if(condition == "No_conditions"):
+        pass
+    elif(condition == "Weather"):
+        # match_df['date']
+        match_df['Weather'] = match_df['date'].apply(Weather_condition)
+        match_df = match_df[match_df['Weather'] == 1]
+        match_df = match_df.drop('Weather', axis=1)
+    elif(condition == "Similarity"):
+        match_df['Similarity'] = match_df[home_num_cols + away_num_cols].apply(Similarity_condition, axis=1)
+        threshold = match_df['Similarity'].mean()
+        # threshold = 20
+        match_df = match_df[match_df['Similarity'] <= threshold]
+        match_df = match_df.drop('Similarity',axis=1)
+    elif(condition == "Rivalry"):
+        # todo: check stages number
+        # todo: check 'id_away' column - what is it? 
+        match_df.sort_values(by='date')
+        tournament_df = Tournament_position(match_df, loadFlag)
+        match_df = pd.merge(match_df, tournament_df, left_index=True, right_index=True)
+        print(match_df)
+        match_df['Rivalry'] = match_df[['pos_home','pos_away']].apply(Rivalry_condition, axis=1)
+        match_df = match_df[match_df['Rivalry'] == 1]
+        match_df = match_df.drop(['Rivalry','pos_home','pos_away'], axis=1)
+    elif(condition == "Rage"):
+        match_df['Rage'] = match_df['date'].apply(Rage_condition)
+        match_df = match_df[match_df['Rage'] == 1]
+        match_df = match_df.drop('Rage', axis=1)
+
+
 
     match_df = match_df.drop(drop_cols, axis=1)
 
@@ -189,7 +294,9 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
 
     cols = list(match_df.columns)
     print(f"Default match_df columns: {cols}")
-    drop_columns = ['id','league_id','season', 'stage', 'match_api_id']
+
+    tournament_columns = ['league_id','season', 'stage']
+    drop_columns = ['id','match_api_id']
     drop_odds_columns = ['IWH', 'IWD', 'IWA', 'LBH', 'LBD', 'LBA', 'PSH', 'PSD', 'PSA', 'WHH',
                          'WHD', 'WHA', 'GBH', 'GBD', 'GBA', 'BSH', 'BSD', 'BSA', 'SJH', 'SJD', 'SJA']
     odds_columns = ['B365H', 'B365D', 'B365A', 'VCH', 'VCD', 'VCA','BWH', 'BWD', 'BWA']
@@ -228,7 +335,7 @@ def match_table_update(team_df : pd.DataFrame, team_att_df : pd.DataFrame, count
     match_df = match_df.merge(country_df, left_on='country_id', right_on='id', how='left')
     match_df = match_df.drop('id', axis=1)
     match_df = match_df.rename(columns={"name": "country_name"})
-    match_df = match_df[["country_id", "country_name", "date", "home_team_api_id", "away_team_api_id",  "home_team_goal",  "away_team_goal"] + odds_columns ]
+    match_df = match_df[tournament_columns + ["country_id", "country_name", "date", "home_team_api_id", "away_team_api_id",  "home_team_goal",  "away_team_goal"] + odds_columns ]
 
     # odds:
 

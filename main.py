@@ -15,6 +15,7 @@ np.random.seed(179)
 ###########################################
 ################ I P S W ##################
 ###########################################
+
 def log_reg(data, T):
     from sklearn.linear_model import LogisticRegression
     LogModel = LogisticRegression(max_iter=10000)
@@ -232,12 +233,12 @@ def get_match_df(datafile, load = False):
 
     return match_df
 
-def get_data(match_df, load = False):
-    data_path = "preprocessed_data/algorithm_data.csv"
-    if (os.path.exists(data_path) and load):
+def get_data(match_df, condition, loadFlag = False, loadTournamentFlag = False):
+    data_path = f"preprocessed_data/{condition}_algorithm_data.csv"
+    if (os.path.exists(data_path) and loadFlag):
         data = pd.read_csv(data_path, index_col=0)
     else:
-        data = dpp.match_data_preprocessing(match_df)
+        data = dpp.match_data_preprocessing(match_df, condition, loadTournamentFlag)
         data.to_csv(data_path)
 
     T = data['T']
@@ -247,11 +248,12 @@ def get_data(match_df, load = False):
     return data, T, Y
 
 def ATTs_for_sql_data(datafile):
-    load = False
-    match_df = get_match_df(datafile, load)
+    loadFlag = False
+    loadTournamentFlag = True
+    match_df = get_match_df(datafile, loadFlag)
 
     results = {}
-    data, T, Y = get_data(match_df, load)
+    data, T, Y = get_data(match_df, "No_conditions", loadFlag, loadTournamentFlag)
 
     print("DATA FOR ALGORITHM: ")
     print(data)
@@ -333,11 +335,14 @@ if __name__ == '__main__':
     # todo 4 : CATE model implementation
 
     # Program parameters:
-    # if loadFlag is false, than get_data creates match_df from the scratch.
+    # if loadFlag is false, then get_data creates match_df from the scratch.
     # O.W. loads it from preprocessed_data folder
     loadFlag = False
     # if GraphsFlag is true, program shows graphs in PART 2
-    GraphsFlag = True
+    GraphsFlag = False
+    # if loadFlag is false, then Tournament places for each stage calculates once again from the scratch.
+    # O.W. loads it from preprocessed_data folder
+    loadTournamentFlag = True
 
     # PART 1: [DONE] DATA PREPROCESSING
     datafile = "data/database.sqlite"
@@ -363,15 +368,29 @@ if __name__ == '__main__':
         # 6)
 
 
-    # PART 3: ALGORITHM DATA PREPROCESSING
-    match_df = dpp.match_table_fill_odds(match_df)  # now all null odds are equal to 1.0
-    data, T, Y = get_data(match_df, loadFlag)
+    # PART 3.0 : CONDITIONS DATA PREPROCESSING
+    # # 1) Weather condition
+    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    # data_weather, T_weather, Y_weather = get_data(match_df, "Weather", loadFlag)
+    # # 2) Similarity condition
+    # match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    # data_similarity, T_similarity, Y_similarity = get_data(match_df,"Similarity", loadFlag)
+    # 3) Rivalry condition
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_rivalry, T_rivalry, Y_rivalry = get_data(match_df,"Rivalry", loadFlag, loadTournamentFlag)
+    # 4) Rage condition
+    match_df = deepcopy(dpp.match_table_fill_odds(match_df_gappy_odds))  # now all null odds are equal to 1.0
+    data_rage, T_rage, Y_rage = get_data(match_df,"Rage", loadFlag)
+
+
+
+    # PART 3.5: ALGORITHM DATA PREPROCESSING
+
+    data, T, Y = get_data(match_df, "No_conditions", loadFlag)
 
     print("DATA FOR ALGORITHM: ")
     print(data)
     # Check that data of match k dublicated right
-    k = 100
-    print(data.loc[[k,int(len(data)/2)+k],:])
 
     # PART 4: CATE IMPLEMENTATION
     # I don't know what this should do
