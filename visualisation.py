@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import data_preprocesing as dpp
 
 # 1) Odds prediction accuracies [DONE]
 def check_odds(x):
@@ -54,7 +55,7 @@ def win_lose_at_home(df : pd.DataFrame ):
     plt.close()
 
 # 4) Losses, Draws, Wins by country [DONE]
-def win_lose_by_countries(df: pd.DataFrame, condition =''):
+def win_lose_by_countries(df: pd.DataFrame, condition = 'No_conditions'):
     y1,y2,y3 = [],[],[]
     res = {}
     countries = list(df['country_name'].unique())
@@ -75,7 +76,7 @@ def win_lose_by_countries(df: pd.DataFrame, condition =''):
     plt.xticks(np.linspace(1, 30, len(countries)) - 0.5 * np.ones(len(countries)), res, size='small', rotation=53)
     plt.subplots_adjust(bottom=0.2, left=0.135)
     plt.ylabel('Matches Number')
-    if(condition == ''):
+    if(condition == 'No_conditions'):
         plt.title('Home Wins Advantage')
     else:
         plt.title(f'Home Wins Advantage with {condition}')
@@ -107,4 +108,20 @@ def goals_distribution_by_countries(df : pd.DataFrame):
     plt.legend(['Home goals', 'Away goals'], loc=2)
     plt.show()
     # plt.close()
-# 6)
+
+def visualise_all(match_df_gappy_odds : pd.DataFrame, flags : dict):
+    if flags['GraphsFlag']:
+        match_df_gappy_odds = dpp.add_winner_column(match_df_gappy_odds)
+        # Possible graphs:
+        # 1) Odds prediction accuracies [DONE]
+        odds_accuracies(match_df_gappy_odds)
+        # 2) Teams parameters distribution by countries [TODO]
+        params_by_countries(match_df_gappy_odds)
+        # 3) Losses, Drawns, Wins at home [DONE]
+        win_lose_at_home(match_df_gappy_odds)
+        # 4) Losses, Drawns, Wins by country [DONE]
+        win_lose_by_countries(match_df_gappy_odds)
+        # 5) Goals distribution by countries (Maybe goal diffs) [DONE]
+        goals_distribution_by_countries(match_df_gappy_odds)
+        match_df_gappy_odds = match_df_gappy_odds.drop('winner', axis = 1)
+

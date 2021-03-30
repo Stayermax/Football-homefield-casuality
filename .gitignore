@@ -132,3 +132,7 @@ dmypy.json
 .idea/ 
 data/database.sqlite
 .directory
+models/
+preprocessed_data/
+data/
+__pycache__/

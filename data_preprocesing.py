@@ -6,7 +6,7 @@ from copy import deepcopy
 #### S Q L   P r e p r o c e s s i n g ####
 ###########################################
 
-def Weather_condition(date):
+def Winter_condition(date):
     month = date.month
     if(month>11 or month<3):
         return 1
@@ -23,9 +23,9 @@ def Similarity_condition(teams_params):
         R_2 += (teams_params[param + '_away'] - teams_params[param + '_home'])**2
     return sqrt(R_2)
 
-def Tournament_position(match_df : pd.DataFrame, loadFlag):
+def Tournament_position(match_df : pd.DataFrame, flags : dict):
     data_path = f"preprocessed_data/Conditions_data/tournament_positions.csv"
-    if (os.path.exists(data_path) and loadFlag):
+    if (os.path.exists(data_path) and flags['loadHelperTablesFlag']):
         res_df = pd.read_csv(data_path, index_col=0)
     else:
         game_cols = ['date', 'league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
@@ -64,9 +64,9 @@ def Rivalry_condition(game_data):
         return 1
     return 0
 
-def Rage_calculation(match_df : pd.DataFrame, loadFlag):
+def Rage_calculation(match_df : pd.DataFrame, flags : dict):
     data_path = f"preprocessed_data/Conditions_data/rage_data.csv"
-    if (os.path.exists(data_path) and loadFlag):
+    if (os.path.exists(data_path) and  flags['loadHelperTablesFlag']):
         res_df = pd.read_csv(data_path, index_col=0)
     else:
         game_cols = ['date', 'league_id', 'season', 'stage', 'team_api_id_home', 'team_api_id_away', 'team_goal_home', 'team_goal_away']
@@ -93,9 +93,9 @@ def Rage_calculation(match_df : pd.DataFrame, loadFlag):
         res_df.to_csv(data_path)
     return res_df
 
-def match_data_preprocessing(match_df, condition, loadFlag, conditionGraphFlag):
+def match_data_preprocessing(match_df, condition, flags : dict):
     all_cols = list(match_df.columns)
-    print(all_cols)
+    # print(all_cols)
     drop_cols = ['league_id','season', 'stage',
                  'country_id', 'date', 'home_team_api_id', 'away_team_api_id', 'team_api_id_home',
                  'team_long_name_home', 'team_short_name_home', 'team_fifa_api_id_home', 'id_home', 'team_api_id_away',
@@ -133,42 +133,39 @@ def match_data_preprocessing(match_df, condition, loadFlag, conditionGraphFlag):
         match_df = match_df[match_df['stage'] <10]
     elif(condition == 'HighStage'):
         match_df = match_df[match_df['stage'] > 20]
-    elif(condition == "Weather"):
+    elif(condition == "Winter"):
         # match_df['date']
-        match_df['Weather'] = match_df['date'].apply(Weather_condition)
-        match_df = match_df[match_df['Weather'] == 1]
-        match_df = match_df.drop('Weather', axis=1)
+        match_df['Winter'] = match_df['date'].apply(Winter_condition)
+        match_df = match_df[match_df['Winter'] == 1]
+        match_df = match_df.drop('Winter', axis=1)
     elif(condition == "Similarity"):
         match_df['Similarity'] = match_df[home_num_cols + away_num_cols].apply(Similarity_condition, axis=1)
         # threshold = match_df['Similarity'].mean()
         threshold = 20
-        print(f"Similarity df: {match_df}")
         match_df = match_df[match_df['Similarity'] <= threshold]
         match_df = match_df.drop('Similarity',axis=1)
-        print(f"Reduced similarity df: {match_df}")
+
     elif(condition == "Rivalry"):
-        # todo: check stages number
-        # todo: check 'id_away' column - what is it?
         match_df.sort_values(by='date')
-        tournament_df = Tournament_position(match_df, loadFlag)
+        tournament_df = Tournament_position(match_df, flags)
         match_df = pd.merge(match_df, tournament_df, left_index=True, right_index=True)
         match_df['Rivalry'] = match_df[['pos_home','pos_away']].apply(Rivalry_condition, axis=1)
-        # print(f"Rivalry df: {match_df}")
         match_df = match_df[match_df['Rivalry'] == 1]
         match_df = match_df.drop(['Rivalry','pos_home','pos_away'], axis=1)
     elif(condition == "Rage"):
         match_df.sort_values(by='date')
-        rage_df = Rage_calculation(match_df, loadFlag)
+        rage_df = Rage_calculation(match_df, flags)
         match_df = pd.merge(match_df, rage_df, left_index=True, right_index=True)
-        # print(f"Rage df: {match_df}")
         match_df = match_df[match_df['Rage'] == 1]
         match_df = match_df.drop('Rage', axis=1)
 
-    if(conditionGraphFlag):
+    if(flags['conditionGraphFlag']):
         import visualisation as vis
         match_df_winner = deepcopy(match_df)
         match_df_winner = add_winner_column(match_df_winner)
         vis.win_lose_by_countries(match_df_winner, condition)
+
+    print(f"Reduced {condition} df: {match_df}")
 
     match_df = match_df.drop(drop_cols, axis=1)
 
@@ -207,7 +204,6 @@ def match_data_preprocessing(match_df, condition, loadFlag, conditionGraphFlag):
     data = cat_to_num(data)
 
     return data
-
 
 def team_table_update(team_df : pd.DataFrame ):
     print(f"=== Team df update ===")
