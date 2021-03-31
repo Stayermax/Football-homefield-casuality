@@ -67,7 +67,10 @@ def win_lose_by_countries(df: pd.DataFrame, condition = 'No_conditions'):
     for country in countries:
         res[country] = df[df['country_name'] == country]['winner'].value_counts().to_dict()
         y1.append(res[country]['H'])
-        y2.append(res[country]['D'])
+        if('D' in res[country].keys()):
+            y2.append(res[country]['D'])
+        else:
+            y2.append(0)
         y3.append(res[country]['A'])
     plt.style.use('fivethirtyeight')
     plt.bar(np.linspace(1, 30, len(countries)), y1, width=0.5, color='b')

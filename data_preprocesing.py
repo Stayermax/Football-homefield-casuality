@@ -202,8 +202,139 @@ def match_data_preprocessing(match_df, condition, flags : dict):
     away_data['T'] = 0
     data = home_data.append(away_data, ignore_index=True)
     data = cat_to_num(data)
-
+    # Drop all odds, since they break propensity scores
+    data = data.drop(['B365_1', 'B365_draw','B365_2', 'VC_1', 'VC_draw', 'VC_2', 'BW_1', 'BW_draw', 'BW_2'], axis = 1)
     return data
+
+def match_data_preprocessing_multiple_conditions(match_df, conditions, flags : dict):
+    all_cols = list(match_df.columns)
+    # print(all_cols)
+    drop_cols = ['league_id', 'season', 'stage',
+                 'country_id', 'date', 'home_team_api_id', 'away_team_api_id', 'team_api_id_home',
+                 'team_long_name_home', 'team_short_name_home', 'team_fifa_api_id_home', 'id_home', 'team_api_id_away',
+                 'team_long_name_away', 'team_short_name_away', 'team_fifa_api_id_away', 'id_away']
+    home_cols = ['buildUpPlaySpeedClass_home',
+                 'buildUpPlayDribblingClass_home',
+                 'buildUpPlayPassingClass_home', 'buildUpPlayPositioningClass_home',
+                 'chanceCreationPassingClass_home', 'chanceCreationCrossingClass_home',
+                 'chanceCreationShootingClass_home', 'chanceCreationPositioningClass_home',
+                 'defencePressureClass_home',
+                 'defenceAggressionClass_home', 'defenceTeamWidthClass_home',
+                 'defenceDefenderLineClass_home', 'team_goal_home',
+                 'B365_home', 'B365_draw', 'VC_home', 'VC_draw', 'BW_home', 'BW_draw']
+    home_num_cols = ['buildUpPlaySpeed_home', 'buildUpPlayDribbling_home', 'buildUpPlayPassing_home',
+                     'chanceCreationPassing_home', 'chanceCreationCrossing_home', 'chanceCreationShooting_home',
+                     'defencePressure_home', 'defenceAggression_home', 'defenceTeamWidth_home']
+
+    away_cols = ['buildUpPlaySpeedClass_away',
+                 'buildUpPlayDribblingClass_away',
+                 'buildUpPlayPassingClass_away', 'buildUpPlayPositioningClass_away',
+                 'chanceCreationPassingClass_away', 'chanceCreationCrossingClass_away',
+                 'chanceCreationShootingClass_away', 'chanceCreationPositioningClass_away',
+                 'defencePressureClass_away',
+                 'defenceAggressionClass_away', 'defenceTeamWidthClass_away',
+                 'defenceDefenderLineClass_away', 'team_goal_away',
+                 'B365_away', 'VC_away', 'BW_away']
+
+    away_num_cols = ['buildUpPlaySpeed_away', 'buildUpPlayDribbling_away', 'buildUpPlayPassing_away',
+                     'chanceCreationPassing_away', 'chanceCreationCrossing_away', 'chanceCreationShooting_away',
+                     'defencePressure_away', 'defenceAggression_away', 'defenceTeamWidth_away']
+    applied_conditions = ''
+    for condition in conditions:
+        if (condition == "No_conditions"):
+            pass
+        elif (condition == 'LowStage'):
+            match_df = match_df[match_df['stage'] < 10]
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+        elif (condition == 'HighStage'):
+            match_df = match_df[match_df['stage'] > 20]
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+        elif (condition == "Winter"):
+            # match_df['date']
+            match_df['Winter'] = match_df['date'].apply(Winter_condition)
+            match_df = match_df[match_df['Winter'] == 1]
+            match_df = match_df.drop('Winter', axis=1)
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+        elif (condition == "Similarity"):
+            match_df['Similarity'] = match_df[home_num_cols + away_num_cols].apply(Similarity_condition, axis=1)
+            # threshold = match_df['Similarity'].mean()
+            threshold = 20
+            match_df = match_df[match_df['Similarity'] <= threshold]
+            match_df = match_df.drop('Similarity', axis=1)
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+
+        elif (condition == "Rivalry"):
+            match_df.sort_values(by='date')
+            tournament_df = Tournament_position(match_df, flags)
+            match_df = pd.merge(match_df, tournament_df, left_index=True, right_index=True)
+            match_df['Rivalry'] = match_df[['pos_home', 'pos_away']].apply(Rivalry_condition, axis=1)
+            match_df = match_df[match_df['Rivalry'] == 1]
+            match_df = match_df.drop(['Rivalry', 'pos_home', 'pos_away'], axis=1)
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+
+        elif (condition == "Rage"):
+            match_df.sort_values(by='date')
+            rage_df = Rage_calculation(match_df, flags)
+            match_df = pd.merge(match_df, rage_df, left_index=True, right_index=True)
+            match_df = match_df[match_df['Rage'] == 1]
+            match_df = match_df.drop('Rage', axis=1)
+            applied_conditions += condition + '_'
+            print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+
+        if (flags['conditionGraphFlag']):
+            import visualisation as vis
+            match_df_winner = deepcopy(match_df)
+            match_df_winner = add_winner_column(match_df_winner)
+            print(f"WITH WINNERS TABLE: {match_df_winner}")
+            vis.win_lose_by_countries(match_df_winner, applied_conditions)
+
+
+    print(f"Reduced {applied_conditions[:-1]} df: {match_df}")
+
+    match_df = match_df.drop(drop_cols, axis=1)
+
+    home_data = match_df.drop('team_goal_away', axis=1)
+    home_rename = {}
+    for col in home_data.columns:
+        if (col == "team_goal_home"):
+            home_rename["team_goal_home"] = "Y"
+        elif ("draw" in col):
+            pass
+        else:
+            name, place = col.split("_")
+            if (place == "away"):
+                home_rename[col] = name + "_2"
+            else:
+                home_rename[col] = name + "_1"
+    home_data = home_data.rename(columns=home_rename)
+    home_data["T"] = 1
+
+    away_data = match_df.drop('team_goal_home', axis=1)
+    away_rename = {}
+    for col in away_data.columns:
+        if (col == "team_goal_away"):
+            away_rename["team_goal_away"] = "Y"
+        elif ("draw" in col):
+            pass
+        else:
+            name, place = col.split("_")
+            if (place == "home"):
+                away_rename[col] = name + "_2"
+            else:
+                away_rename[col] = name + "_1"
+    away_data = away_data.rename(columns=away_rename)
+    away_data['T'] = 0
+    data = home_data.append(away_data, ignore_index=True)
+    data = cat_to_num(data)
+    # Drop all odds, since they break propensity scores
+    data = data.drop(['B365_1', 'B365_draw', 'B365_2', 'VC_1', 'VC_draw', 'VC_2', 'BW_1', 'BW_draw', 'BW_2'], axis=1)
+    return data
+
 
 def team_table_update(team_df : pd.DataFrame ):
     print(f"=== Team df update ===")

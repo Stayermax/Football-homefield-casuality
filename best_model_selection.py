@@ -3,7 +3,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.model_selection import cross_val_score, train_test_split
-# from xgboost import XGBClassifier, XGBRegressor
+from xgboost import XGBClassifier, XGBRegressor
 from metric_learn import NCA, MLKR
 import pickle
 import numpy as np
@@ -127,18 +127,18 @@ class BestModel:
             self._init_function = None
             self._optimize_function = None
             self._model_str = 'regressor'
-        # elif self._model_str in ('xgboost', 'xgbclass', 'xgboostclassifier', 'xgbclassifier'):
-        #     self._init_function = self._init_XGBClassifier
-        #     self._optimize_function = self._optimize_XGBClassifier
-        #     self._model_str = 'xgboost'
+        elif self._model_str in ('xgboost', 'xgbclass', 'xgboostclassifier', 'xgbclassifier'):
+            self._init_function = self._init_XGBClassifier
+            self._optimize_function = self._optimize_XGBClassifier
+            self._model_str = 'xgboost'
         elif self._model_str in ('randomforest', 'rfc', 'randomforestclassifier'):
             self._init_function = self._init_RandomForestClassifier
             self._optimize_function = self._optimize_RandomForestClassifier
             self._model_str = 'rfc'
-        # elif self._model_str in ('xgbreg', 'xgboostregressor', 'xgbregressor'):
-        #     self._init_function = self._init_XGBRegressor
-        #     self._optimize_function = self._optimize_XGBRegressor
-        #     self._model_str = 'xgbreg'
+        elif self._model_str in ('xgbreg', 'xgboostregressor', 'xgbregressor'):
+            self._init_function = self._init_XGBRegressor
+            self._optimize_function = self._optimize_XGBRegressor
+            self._model_str = 'xgbreg'
         elif self._model_str in ('rfr', 'randomforestregressor'):
             self._init_function = self._init_RandomForestRegressor
             self._optimize_function = self._optimize_RandomForestRegressor
@@ -396,19 +396,18 @@ class BestModel:
 
     def fit(self, X, y, cv_splits=5, scoring='roc_auc', n_jobs=-1):
         if self._model_str in ('classifier', 'regressor'):
-            # models_to_check = ('rfc', 'lr') if self._model_str == 'classifier' else ('lasso', 'rfr')
-            models_to_check = ('rfc', 'lr') if self._model_str == 'classifier' else ['rfr']
+            models_to_check = ('xgboost', 'rfc', 'lr') if self._model_str == 'classifier' else (
+                'xgbreg', 'rfr', 'lasso')
             best_model, best_score, best_params = None, None, None
             for model_str in models_to_check:
-                if self._model_str == 'regressor':
-                    if(model_str == 'lasso'):
-                        self._init_points = 75
-                        self._n_iter = 50
-                        self._init_kwargs = {'max_iter': 100, 'n_neighbors': -1}
-                    else:
-                        self._init_points = 3
-                        self._n_iter = 3
-                        self._init_kwargs = {'max_iter': 6, 'n_neighbors': -1}
+                if(model_str == 'lasso' or model_str == 'lr'):
+                    self._init_points = 75
+                    self._n_iter = 50
+                    self._init_kwargs = {'max_iter': 100, 'n_neighbors': -1}
+                else:
+                    self._init_points = 3
+                    self._n_iter = 3
+                    self._init_kwargs = {'max_iter': 6, 'n_neighbors': -1}
                 print(f'------------------ working on {model_str} ------------------')
                 model = BestModel(model_str, self._init_points, self._n_iter)
                 cv_function, parameters = model._optimize_function(X, y, cv_splits, scoring, n_jobs, **self.get_init_kwargs())
