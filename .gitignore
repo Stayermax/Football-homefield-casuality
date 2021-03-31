@@ -129,6 +129,10 @@ dmypy.json
 .pyre/
 
 
-.idea/ 
-data/database.sqlite
+.idea/
 .directory
+data/
+data/database.sqlite
+models_odds/
+models_no_odds/
+preprocessed_data/
