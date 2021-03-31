@@ -133,6 +133,6 @@ dmypy.json
 .directory
 data/
 data/database.sqlite
-models_backup/
+models_odds/
 models_no_odds/
 preprocessed_data/

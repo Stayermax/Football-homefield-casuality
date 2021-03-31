@@ -270,7 +270,7 @@ def main_mp():
     trainNewNodelsFlag = False
 
     models_fold = "models_no_odds"
-    # models_fold = "models_backup"
+    # models_fold = "models_odds"
 
     flags = {
         'loadFlag': loadFlag,
@@ -385,7 +385,7 @@ def main_1c():
     trainNewNodelsFlag = False
 
     models_fold = "models_no_odds"
-    # models_fold = "models_backup"
+    # models_fold = "models_odds"
 
     flags = {
         'loadFlag': loadFlag,
